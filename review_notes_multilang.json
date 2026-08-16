@@ -38,5 +38,15 @@
     "original": "ok thank you. and.. i'd like to know Wi-Fi password.",
     "corrected": "Okay, thank you. And I'd like to know the Wi-Fi password, please.",
     "explanation": "전체적으로 잘 전달되었지만, 명사 'password'는 셀 수 있는 명사이므로 앞에 관사 'the'를 붙여 'the Wi-Fi password'라고 하거나 문장 끝에 'please'를 붙이면 훨씬 더 자연스러운 원어민 표현이 됩니다."
+  },
+  {
+    "timestamp": "2026-08-16 21:56",
+    "language": "영어",
+    "voice": "en-US-JennyNeural",
+    "category": "✈️ 해외여행 (Travel)",
+    "scenario": "가까운 지하철역 길찾기",
+    "original": "hi i'm looking for the nearist subway station. can you explain where is it?",
+    "corrected": "Hi, I'm looking for the nearest subway station. Can you tell me where it is?",
+    "explanation": "nearist는 최상급 표현인 nearest로 써야 하며, 간접의문문 형태여서 where is it이 아니라 where it is가 되어야 더 자연스럽습니다."
   }
 ]

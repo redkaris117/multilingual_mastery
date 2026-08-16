@@ -1274,8 +1274,7 @@ class MultilingualMasteryApp(ctk.CTk):
             text=guide_msg,
             font=ctk.CTkFont(family="Pretendard", size=12),
             text_color=THEME["text_sub"],
-            justify="left",
-            line_spacing=6
+            justify="left"
         ).pack(padx=20, pady=(0, 20))
 
     def run_studio_analysis(self):
@@ -1491,8 +1490,7 @@ class MultilingualMasteryApp(ctk.CTk):
                 font=ctk.CTkFont(family="Pretendard", size=11),
                 text_color=THEME["text_main"],
                 wraplength=620,
-                justify="left",
-                line_spacing=4
+                justify="left"
             ).pack(anchor="w", padx=16, pady=(0, 12))
 
         # ================= Card 3: 🎭 상황 & 뉘앙스별 대안 표현 =================
