@@ -1,0 +1,42 @@
+[
+  {
+    "timestamp": "2026-08-16 16:09",
+    "language": "영어",
+    "voice": "en-US-AriaNeural",
+    "category": "✈️ 해외여행 (Travel)",
+    "scenario": "가까운 지하철역 길 찾기",
+    "original": "Where is subway?",
+    "corrected": "Where is the nearest subway station?",
+    "explanation": "단순히 subway라고만 하기보다는 '가장 가까운 지하철역'이라는 의미로 the nearest subway station을 사용하면 훨씬 자연스러워요."
+  },
+  {
+    "timestamp": "2026-08-16 16:10",
+    "language": "영어",
+    "voice": "en-US-AriaNeural",
+    "category": "✈️ 해외여행 (Travel)",
+    "scenario": "가까운 지하철역 길 찾기",
+    "original": "oh thanks",
+    "corrected": "Oh, thank you!",
+    "explanation": "친근한 상황이라 'oh thanks'도 통하지만, 'Oh, thank you!'라고 완전한 문장으로 말하면 훨씬 더 정중하고 자연스러워요."
+  },
+  {
+    "timestamp": "2026-08-16 16:26",
+    "language": "영어",
+    "voice": "en-US-JennyNeural",
+    "category": "✈️ 해외여행 (Travel)",
+    "scenario": "호텔 체크인과 조식 시간 문의",
+    "original": "yes. i'd like to get a breakfast included.",
+    "corrected": "Yes, I'd like to include breakfast.",
+    "explanation": "breakfast는 셀 수 없는 명사이므로 앞에 'a'를 붙이지 않습니다. 또한 '조식을 포함하다'라고 할 때는 'include breakfast'를 사용하는 것이 훨씬 자연스럽고 원어민들이 자주 쓰는 표현이에요!"
+  },
+  {
+    "timestamp": "2026-08-16 16:28",
+    "language": "영어",
+    "voice": "en-US-JennyNeural",
+    "category": "✈️ 해외여행 (Travel)",
+    "scenario": "호텔 체크인과 조식 시간 문의",
+    "original": "ok thank you. and.. i'd like to know Wi-Fi password.",
+    "corrected": "Okay, thank you. And I'd like to know the Wi-Fi password, please.",
+    "explanation": "전체적으로 잘 전달되었지만, 명사 'password'는 셀 수 있는 명사이므로 앞에 관사 'the'를 붙여 'the Wi-Fi password'라고 하거나 문장 끝에 'please'를 붙이면 훨씬 더 자연스러운 원어민 표현이 됩니다."
+  }
+]

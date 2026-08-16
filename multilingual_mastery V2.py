@@ -297,6 +297,29 @@ class DynamicScenarioSchema(BaseModel):
     opening: str = Field(description="상황극을 시작하는 상대방의 첫 대사 (반드시 선택된 대상 언어로 1~2문장)")
     opening_translation: str = Field(description="상대방의 첫 대사(opening)에 대한 자연스럽고 정확한 한국어 번역")
 
+class StudioCoachingResponse(BaseModel):
+    target_language: str = Field(description="대상 언어 (영어, 일본어, 중국어, 스페인어 중 하나)")
+    korean_source: str = Field(description="입력받은 한국어 원문")
+    has_user_attempt: bool = Field(description="사용자가 직접 작성한 외국어 작문 입력이 있는지 여부")
+    
+    # 원어민 모범 표현
+    recommended_translation: str = Field(description="가장 자연스럽고 원어민스러운 모범 번역 문장")
+    recommended_translation_kr: str = Field(description="모범 번역의 자연스러운 한국어 설명 및 뉘앙스 요약")
+    
+    # 사용자 작문 평가 (2번 입력창에 작성이 있는 경우)
+    user_attempt_grade: str = Field(description="작문 평가 등급 (예: '🌟 원어민급 자연스러움!', '👍 좋은 표현', '💡 뉘앙스/문법 교정 추천')")
+    user_attempt_evaluation: str = Field(description="사용자 작문에 대한 한 줄 칭찬과 요약 피드백")
+    user_feedback_detail: str = Field(description="문법 오류, 부자연스러운 어휘, 뉘앙스 차이점에 대한 친절하고 명쾌한 한국어 해설 (작문이 없으면 빈 문자열)")
+    
+    # 상황 & 뉘앙스별 대안 표현
+    formal_expression: str = Field(description="격식 있고 정중한 비즈니스/공식적인 표현")
+    formal_translation_kr: str = Field(description="격식 표현의 한국어 뜻")
+    casual_expression: str = Field(description="일상/친구 사이에서 쓰는 친근한 캐주얼 구어 표현")
+    casual_translation_kr: str = Field(description="캐주얼 표현의 한국어 뜻")
+    
+    # 핵심 어휘 & 숙어
+    key_vocabulary: list[str] = Field(description="문장의 핵심 단어 및 숙어와 한국어 의미 (예: ['included : 포함된', 'breakfast : 조식'])")
+
 
 # ==========================================
 # 5. 고품질 다국어 오디오 엔진 (Edge-TTS)
@@ -343,15 +366,15 @@ def play_tts_sound(text: str, voice: str):
 
 
 # ==========================================
-# 6. CustomTkinter 다국어 GUI 애플리케이션
+# 6. CustomTkinter 다국어 GUI 애플리케이션 (V2)
 # ==========================================
 class MultilingualMasteryApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("🌱 Multilingual Mastery AI - Premium Education")
-        self.geometry("1180x920")
-        self.minsize(1050, 780)
+        self.title("🌱 Multilingual Mastery AI V2 - Premium Education & Studio")
+        self.geometry("1200x940")
+        self.minsize(1080, 800)
         self.configure(fg_color=THEME["app_bg"])
 
         # 상태 변수
@@ -476,7 +499,7 @@ class MultilingualMasteryApp(ctk.CTk):
         )
         self.lbl_global_streak.pack(side="right", padx=18)
 
-        # 4대 탭 뷰
+        # 5대 탭 뷰 (3번째 탭에 AI 작문 & 번역 랩 추가)
         self.tabview = ctk.CTkTabview(
             self,
             corner_radius=14,
@@ -491,11 +514,13 @@ class MultilingualMasteryApp(ctk.CTk):
 
         self.tab_fluent = self.tabview.add(" ⚡ Modern Fluent 뷰 ")
         self.tab_rpg = self.tabview.add(" ⚔️ Gamified RPG 뷰 ")
+        self.tab_studio = self.tabview.add(" ✍️ AI 작문·번역 랩 ")
         self.tab_review = self.tabview.add(" 📚 스마트 오답노트 & 퀴즈 ")
         self.tab_dashboard = self.tabview.add(" 📊 실력 대시보드 ")
 
         self.build_fluent_tab()
         self.build_rpg_tab()
+        self.build_studio_tab()
         self.build_review_tab()
         self.build_dashboard_tab()
 
@@ -598,7 +623,7 @@ class MultilingualMasteryApp(ctk.CTk):
         self.fl_mode_seg.set("📋 카테고리/테마")
         self.fl_mode_seg.pack(fill="x", padx=16, pady=(0, 8))
 
-        # 모드 A (카테고리/테마)
+        # 프리셋 프레임
         self.fl_frame_preset = ctk.CTkFrame(self.fl_left_panel, fg_color="transparent")
         self.fl_frame_preset.pack(fill="x", padx=16, pady=0)
 
@@ -613,38 +638,38 @@ class MultilingualMasteryApp(ctk.CTk):
             text_color=THEME["text_main"],
             dropdown_fg_color="#FFFFFF",
             dropdown_text_color=THEME["text_main"],
-            corner_radius=8
+            corner_radius=8,
+            font=ctk.CTkFont(size=12)
         )
-        self.fl_cat_combo.pack(fill="x", pady=(0, 5))
+        self.fl_cat_combo.pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(self.fl_frame_preset, text="📌 2. 세부 테마 선택", font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["text_sub"]).pack(anchor="w", pady=(2, 2))
         self.fl_sc_combo = ctk.CTkOptionMenu(
             self.fl_frame_preset,
-            values=["선택 중..."],
+            values=[],
             fg_color="#F1F5F9",
             button_color="#E2E8F0",
             button_hover_color="#CBD5E1",
             text_color=THEME["text_main"],
             dropdown_fg_color="#FFFFFF",
             dropdown_text_color=THEME["text_main"],
-            corner_radius=8
+            corner_radius=8,
+            font=ctk.CTkFont(size=12)
         )
-        self.fl_sc_combo.pack(fill="x", pady=(0, 5))
+        self.fl_sc_combo.pack(fill="x", pady=(0, 6))
 
-        self.fl_dynamic_var = ctk.BooleanVar(value=True)
         self.fl_chk_dynamic = ctk.CTkCheckBox(
             self.fl_frame_preset,
             text="🎲 매번 새로운 인물/상황 AI 변형",
-            variable=self.fl_dynamic_var,
             font=ctk.CTkFont(size=11),
-            text_color=THEME["text_main"],
             fg_color=THEME["primary"],
             hover_color=THEME["primary_hover"],
-            checkmark_color="#FFFFFF"
+            text_color=THEME["text_main"]
         )
-        self.fl_chk_dynamic.pack(anchor="w", pady=(3, 3))
+        self.fl_chk_dynamic.select()
+        self.fl_chk_dynamic.pack(anchor="w", pady=(2, 6))
 
-        # 모드 B (자유 생성)
+        # 커스텀 AI 프레임
         self.fl_frame_custom = ctk.CTkFrame(self.fl_left_panel, fg_color="transparent")
 
         ctk.CTkLabel(self.fl_frame_custom, text="💡 내가 원하는 상황 자유 입력", font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["coach_accent"]).pack(anchor="w", pady=(2, 2))
@@ -654,24 +679,15 @@ class MultilingualMasteryApp(ctk.CTk):
             fg_color="#FFFFFF",
             border_color=THEME["card_border"],
             text_color=THEME["text_main"],
-            corner_radius=8
-        )
-        self.fl_entry_custom_ai.pack(fill="x", pady=(0, 5))
-
-        guide_box = ctk.CTkLabel(
-            self.fl_frame_custom,
-            text="✨ [자유 입력 예시]\n• 해외 부동산 계약서 조항 검토하기\n• 렌터카 스크래치 보험 분쟁 해결\n• 보드게임 모임에서 타일 룰 설명하기",
+            height=36,
+            corner_radius=8,
             font=ctk.CTkFont(size=10),
-            text_color=THEME["text_sub"],
-            justify="left",
-            fg_color="#F8FAFC",
-            corner_radius=8
         )
-        guide_box.pack(fill="x", pady=3, ipadx=6, ipady=4)
+        self.fl_entry_custom_ai.pack(fill="x", pady=(0, 6))
 
-        # 공통 하단 설정
+        # 공통 프레임 (난이도 & 성우)
         self.fl_frame_common = ctk.CTkFrame(self.fl_left_panel, fg_color="transparent")
-        self.fl_frame_common.pack(fill="x", padx=16, pady=(4, 0))
+        self.fl_frame_common.pack(fill="x", padx=16, pady=0)
 
         ctk.CTkLabel(self.fl_frame_common, text="🎯 7단계 회화 레벨 설정", font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["text_sub"]).pack(anchor="w", pady=(2, 2))
         self.fl_diff_combo = ctk.CTkOptionMenu(
@@ -683,10 +699,11 @@ class MultilingualMasteryApp(ctk.CTk):
             text_color=THEME["text_main"],
             dropdown_fg_color="#FFFFFF",
             dropdown_text_color=THEME["text_main"],
-            corner_radius=8
+            corner_radius=8,
+            font=ctk.CTkFont(size=12)
         )
         self.fl_diff_combo.set("Lv 2. 기초 일상 (A2 Elementary)")
-        self.fl_diff_combo.pack(fill="x", pady=(0, 5))
+        self.fl_diff_combo.pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(self.fl_frame_common, text="🎙️ 원어민 성우 설정", font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["text_sub"]).pack(anchor="w", pady=(2, 2))
         self.fl_voice_combo = ctk.CTkOptionMenu(
@@ -698,9 +715,10 @@ class MultilingualMasteryApp(ctk.CTk):
             text_color=THEME["text_main"],
             dropdown_fg_color="#FFFFFF",
             dropdown_text_color=THEME["text_main"],
-            corner_radius=8
+            corner_radius=8,
+            font=ctk.CTkFont(size=12)
         )
-        self.fl_voice_combo.pack(fill="x", pady=(0, 5))
+        self.fl_voice_combo.pack(fill="x", pady=(0, 6))
 
         ctk.CTkLabel(self.fl_frame_common, text="💡 세부 추가조건 커스텀 (옵션)", font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["text_sub"]).pack(anchor="w", pady=(2, 2))
         self.fl_entry_condition = ctk.CTkEntry(
@@ -709,9 +727,10 @@ class MultilingualMasteryApp(ctk.CTk):
             fg_color="#FFFFFF",
             border_color=THEME["card_border"],
             text_color=THEME["text_main"],
+            height=32,
             corner_radius=8
         )
-        self.fl_entry_condition.pack(fill="x", pady=(0, 8))
+        self.fl_entry_condition.pack(fill="x", pady=(0, 10))
 
         self.fl_btn_start = ctk.CTkButton(
             self.fl_frame_common,
@@ -845,6 +864,8 @@ class MultilingualMasteryApp(ctk.CTk):
             self.rpg_txt_input.configure(placeholder_text=cfg["rpg_placeholder"])
         self.fl_entry_custom_ai.configure(placeholder_text=cfg["custom_placeholder"])
         self.fl_btn_start.configure(text=f"🎬 [{cfg['key']}] 롤플레잉 세션 시작")
+        if hasattr(self, 'studio_opt_lang'):
+            self.studio_opt_lang.set(lang_name)
         self.update_all_headers()
 
     def on_fluent_mode_changed(self, value):
@@ -867,29 +888,30 @@ class MultilingualMasteryApp(ctk.CTk):
     def build_rpg_tab(self):
         hud_box = ctk.CTkFrame(
             self.tab_rpg,
+            height=70,
             corner_radius=14,
             fg_color=THEME["card_bg"],
             border_width=1,
             border_color=THEME["card_border"]
         )
-        hud_box.pack(fill="x", padx=14, pady=6)
+        hud_box.pack(fill="x", padx=14, pady=(10, 6))
 
-        hud_top = ctk.CTkFrame(hud_box, fg_color="transparent")
-        hud_top.pack(fill="x", padx=16, pady=(8, 2))
+        top_hud = ctk.CTkFrame(hud_box, fg_color="transparent")
+        top_hud.pack(fill="x", padx=16, pady=(10, 2))
 
         self.lbl_rpg_hud_tier = ctk.CTkLabel(
-            hud_top,
+            top_hud,
             text="🏆 TIER: [ BRONZE (TOURIST) ]",
             font=ctk.CTkFont(family="Pretendard", size=14, weight="bold"),
-            text_color=THEME["coach_accent"]
+            text_color=THEME["purple_accent"]
         )
         self.lbl_rpg_hud_tier.pack(side="left")
 
         self.lbl_rpg_hud_exp = ctk.CTkLabel(
-            hud_top,
+            top_hud,
             text="EXP [ 0 / 200 pts ]",
             font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
-            text_color=THEME["primary"]
+            text_color=THEME["coach_accent"]
         )
         self.lbl_rpg_hud_exp.pack(side="right")
 
@@ -897,44 +919,44 @@ class MultilingualMasteryApp(ctk.CTk):
             hud_box,
             height=12,
             corner_radius=6,
-            progress_color=THEME["primary"],
-            fg_color="#E2E8F0"
+            progress_color=THEME["purple_accent"],
+            fg_color="#F1F5F9"
         )
         self.rpg_exp_bar.set(0.0)
         self.rpg_exp_bar.pack(fill="x", padx=16, pady=(2, 10))
 
-        # 퀘스트 브리핑 카드
+        # 액티브 퀘스트 헤더
         self.rpg_quest_card = ctk.CTkFrame(
             self.tab_rpg,
             corner_radius=12,
-            fg_color=THEME["user_bubble"],
+            fg_color=THEME["card_bg"],
             border_width=1,
-            border_color=THEME["user_border"]
+            border_color=THEME["card_border"]
         )
-        self.rpg_quest_card.pack(fill="x", padx=14, pady=4)
+        self.rpg_quest_card.pack(fill="x", padx=14, pady=(0, 6))
 
         self.lbl_rpg_quest_title = ctk.CTkLabel(
             self.rpg_quest_card,
-            text="⚔️ ACTIVE QUEST : [STAGE 01] 미션 대기 중",
+            text="⚔️ ACTIVE QUEST : [미션 대기 중]",
             font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
-            text_color="#1E293B"
+            text_color=THEME["purple_accent"]
         )
-        self.lbl_rpg_quest_title.pack(anchor="w", padx=14, pady=(8, 2))
+        self.lbl_rpg_quest_title.pack(anchor="w", padx=14, pady=(10, 2))
 
         self.lbl_rpg_quest_sub = ctk.CTkLabel(
             self.rpg_quest_card,
-            text="🎯 난이도: ★★★☆☆ (Intermediate)  │  👾 상대 보스: Grand Hotel Alex",
+            text="상단 탭에서 언어와 난이도를 선택하거나 아래 '랜덤 퀘스트 수락'을 눌러주세요.",
             font=ctk.CTkFont(family="Pretendard", size=11, weight="bold"),
-            text_color="#2F855A"
+            text_color=THEME["text_sub"]
         )
-        self.lbl_rpg_quest_sub.pack(anchor="w", padx=14, pady=(0, 2))
+        self.lbl_rpg_quest_sub.pack(anchor="w", padx=14, pady=(0, 4))
 
         self.lbl_rpg_quest_desc = ctk.CTkLabel(
             self.rpg_quest_card,
-            text="📜 미션 목표: Fluent 탭에서 세션을 시작하거나 아래 [🎲 랜덤 퀘스트 수락] 버튼을 누르세요!",
+            text="📜 미션 목표: 롤플레잉 세션을 시작하면 NPC 보스가 등장합니다.",
             font=ctk.CTkFont(family="Pretendard", size=11),
             text_color=THEME["text_main"],
-            wraplength=850,
+            wraplength=980,
             justify="left"
         )
         self.lbl_rpg_quest_desc.pack(anchor="w", padx=14, pady=(0, 8))
@@ -1057,6 +1079,529 @@ class MultilingualMasteryApp(ctk.CTk):
         )
         btn_rpg_send.pack(side="right")
 
+    # =========================================================================
+    # [TAB 3] ✍️ AI 작문 & 번역 랩 (신규 추가!)
+    # =========================================================================
+    def build_studio_tab(self):
+        # 좌우 2열 패널 분할
+        self.studio_left_panel = ctk.CTkFrame(
+            self.tab_studio,
+            width=430,
+            corner_radius=14,
+            fg_color=THEME["card_bg"],
+            border_width=1,
+            border_color=THEME["card_border"]
+        )
+        self.studio_left_panel.pack(side="left", fill="y", padx=(6, 8), pady=6)
+
+        self.studio_right_panel = ctk.CTkFrame(
+            self.tab_studio,
+            corner_radius=14,
+            fg_color=THEME["card_bg"],
+            border_width=1,
+            border_color=THEME["card_border"]
+        )
+        self.studio_right_panel.pack(side="right", fill="both", expand=True, padx=(0, 6), pady=6)
+
+        # ------------------ 좌측 입력 영역 ------------------
+        ctk.CTkLabel(
+            self.studio_left_panel,
+            text="🌐 번역 및 작문 대상 언어",
+            font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"),
+            text_color=THEME["primary"]
+        ).pack(anchor="w", padx=16, pady=(12, 2))
+
+        self.studio_opt_lang = ctk.CTkOptionMenu(
+            self.studio_left_panel,
+            values=list(LANG_CONFIGS.keys()),
+            command=self.on_studio_lang_changed,
+            fg_color="#EBF7EE",
+            button_color="#C3E6CB",
+            button_hover_color="#A3D9B1",
+            text_color=THEME["primary"],
+            dropdown_fg_color="#FFFFFF",
+            dropdown_text_color=THEME["text_main"],
+            corner_radius=8,
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        self.studio_opt_lang.pack(fill="x", padx=16, pady=(0, 10))
+
+        # 1번 입력창: 한국어 원문
+        ctk.CTkLabel(
+            self.studio_left_panel,
+            text="1️⃣ 한국어 원문 문장 (필수)",
+            font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"),
+            text_color=THEME["text_main"]
+        ).pack(anchor="w", padx=16, pady=(4, 2))
+
+        self.studio_txt_kr = ctk.CTkTextbox(
+            self.studio_left_panel,
+            height=100,
+            fg_color="#F8FAFC",
+            border_width=1,
+            border_color=THEME["card_border"],
+            text_color=THEME["text_main"],
+            corner_radius=10,
+            font=ctk.CTkFont(family="Pretendard", size=12)
+        )
+        self.studio_txt_kr.pack(fill="x", padx=16, pady=(0, 12))
+
+        # 2번 입력창: 내가 시도한 외국어 작문 [선택]
+        ctk.CTkLabel(
+            self.studio_left_panel,
+            text="2️⃣ 내가 시도한 외국어 작문 (선택 사항)",
+            font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"),
+            text_color=THEME["accent_blue"]
+        ).pack(anchor="w", padx=16, pady=(2, 2))
+
+        lbl_hint = ctk.CTkLabel(
+            self.studio_left_panel,
+            text="💡 직접 영작/작문해보시면 1:1 정밀 첨삭 피드백을 드립니다.\n(비워두시면 원어민 추천 번역만 깔끔하게 제공)",
+            font=ctk.CTkFont(family="Pretendard", size=10),
+            text_color=THEME["text_sub"],
+            justify="left"
+        )
+        lbl_hint.pack(anchor="w", padx=16, pady=(0, 4))
+
+        self.studio_txt_foreign = ctk.CTkTextbox(
+            self.studio_left_panel,
+            height=100,
+            fg_color="#F8FAFC",
+            border_width=1,
+            border_color=THEME["card_border"],
+            text_color=THEME["text_main"],
+            corner_radius=10,
+            font=ctk.CTkFont(family="Pretendard", size=12)
+        )
+        self.studio_txt_foreign.pack(fill="x", padx=16, pady=(0, 14))
+
+        # 분석 실행 버튼
+        self.studio_btn_analyze = ctk.CTkButton(
+            self.studio_left_panel,
+            text="✨ AI 번역 & 작문 정밀 분석",
+            font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
+            fg_color=THEME["primary"],
+            hover_color=THEME["primary_hover"],
+            text_color="#FFFFFF",
+            height=42,
+            corner_radius=10,
+            command=self.run_studio_analysis
+        )
+        self.studio_btn_analyze.pack(fill="x", padx=16, pady=(0, 8))
+
+        # 보조 버튼 행 (샘플 & 초기화)
+        sample_row = ctk.CTkFrame(self.studio_left_panel, fg_color="transparent")
+        sample_row.pack(fill="x", padx=16, pady=(0, 10))
+
+        btn_sample = ctk.CTkButton(
+            sample_row,
+            text="💡 예시 문장 넣기",
+            font=ctk.CTkFont(size=11),
+            fg_color="#F1F5F9",
+            hover_color="#E2E8F0",
+            text_color=THEME["text_main"],
+            height=32,
+            corner_radius=8,
+            command=self.load_studio_sample
+        )
+        btn_sample.pack(side="left", fill="x", expand=True, padx=(0, 6))
+
+        btn_clear = ctk.CTkButton(
+            sample_row,
+            text="🔄 비우기",
+            font=ctk.CTkFont(size=11),
+            fg_color="#F1F5F9",
+            hover_color="#E2E8F0",
+            text_color="#DC2626",
+            height=32,
+            width=70,
+            corner_radius=8,
+            command=self.clear_studio_inputs
+        )
+        btn_clear.pack(side="right")
+
+        # ------------------ 우측 결과 스크롤 영역 ------------------
+        self.studio_result_scroll = ctk.CTkScrollableFrame(
+            self.studio_right_panel,
+            fg_color="#F8FAFC",
+            corner_radius=12
+        )
+        self.studio_result_scroll.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.render_studio_empty_state()
+
+    def on_studio_lang_changed(self, lang_name):
+        pass
+
+    def load_studio_sample(self):
+        self.studio_txt_kr.delete("1.0", "end")
+        self.studio_txt_foreign.delete("1.0", "end")
+        self.studio_txt_kr.insert("1.0", "여기 조식 서비스 되나요?")
+        self.studio_txt_foreign.insert("1.0", "is hotel breakfast served here?")
+
+    def clear_studio_inputs(self):
+        self.studio_txt_kr.delete("1.0", "end")
+        self.studio_txt_foreign.delete("1.0", "end")
+        self.render_studio_empty_state()
+
+    def render_studio_empty_state(self):
+        for widget in self.studio_result_scroll.winfo_children():
+            widget.destroy()
+
+        empty_box = ctk.CTkFrame(
+            self.studio_result_scroll,
+            fg_color=THEME["card_bg"],
+            border_width=1,
+            border_color=THEME["card_border"],
+            corner_radius=14
+        )
+        empty_box.pack(fill="both", expand=True, padx=20, pady=40, ipady=30)
+
+        ctk.CTkLabel(
+            empty_box,
+            text="✍️ AI 작문 & 번역 랩에 오신 것을 환영합니다!",
+            font=ctk.CTkFont(family="Pretendard", size=16, weight="bold"),
+            text_color=THEME["primary"]
+        ).pack(pady=(20, 8))
+
+        guide_msg = (
+            "1. 좌측 1번 입력창에 원하는 한국어 문장을 입력하세요.\n"
+            "2. 2번 입력창에 직접 외국어 작문(영작/일작 등)을 해보실 수 있습니다.\n"
+            "3. '✨ AI 번역 & 작문 정밀 분석'을 누르면 원어민 모범 표현과 1:1 맞춤 피드백을 제공합니다!"
+        )
+        ctk.CTkLabel(
+            empty_box,
+            text=guide_msg,
+            font=ctk.CTkFont(family="Pretendard", size=12),
+            text_color=THEME["text_sub"],
+            justify="left",
+            line_spacing=6
+        ).pack(padx=20, pady=(0, 20))
+
+    def run_studio_analysis(self):
+        kr_text = self.studio_txt_kr.get("1.0", "end").strip()
+        user_attempt = self.studio_txt_foreign.get("1.0", "end").strip()
+
+        if not kr_text:
+            messagebox.showwarning("안내", "1️⃣ 번역하고 싶은 한국어 문장을 먼저 입력해 주세요!")
+            return
+
+        self.studio_btn_analyze.configure(text="⏳ AI 정밀 분석 중...", state="disabled")
+        threading.Thread(target=self._process_studio_analysis, args=(kr_text, user_attempt), daemon=True).start()
+
+    def _process_studio_analysis(self, kr_text: str, user_attempt: str):
+        lang_name = self.studio_opt_lang.get()
+        lang_cfg = LANG_CONFIGS.get(lang_name, LANG_CONFIGS["🇺🇸 영어 (English)"])
+        has_attempt = bool(user_attempt)
+
+        system_prompt = f"""
+당신은 최고의 1:1 외국어 원어민 튜터이자 전문 번역가입니다.
+[학습 대상 언어]: {lang_cfg['name_en']} ({lang_cfg['key']})
+
+사용자가 한국어 문장을 입력했으며, 추가로 직접 번역을 시도(외국어 작문)했을 수 있습니다.
+
+[작성 및 코칭 지침]:
+1. recommended_translation: 한국어 의미를 가장 자연스럽고 원어민스럽게 전달하는 최고 수준의 모범 번역 문장 ({lang_cfg['name_en']})
+2. recommended_translation_kr: 모범 번역에 대한 자연스러운 한국어 설명 및 뉘앙스 요약
+3. 사용자가 직접 외국어를 작성한 경우 (has_user_attempt = True):
+   - user_attempt_grade: '🌟 원어민급 자연스러움!', '👍 의미 전달 양호', '💡 문법/뉘앙스 교정 추천' 중 하나 선택
+   - user_attempt_evaluation: 사용자 작문에 대한 한 줄 칭찬과 핵심 요약 평가
+   - user_feedback_detail: 왜 원어민 표현이 더 자연스러운지, 문법/전치사/어휘 선택의 차이점을 매우 친절하고 명쾌하게 한국어로 해설
+4. 사용자가 직접 외국어를 작성하지 않은 경우 (has_user_attempt = False):
+   - user_attempt_grade, user_attempt_evaluation, user_feedback_detail은 빈 문자열("")로 작성
+5. formal_expression: 비즈니스/격식 상황에서 사용하는 품격 있는 정중한 표현 ({lang_cfg['name_en']}) 및 formal_translation_kr
+6. casual_expression: 친구/일상 대화에서 사용하는 자연스러운 캐주얼 구어 표현 ({lang_cfg['name_en']}) 및 casual_translation_kr
+7. key_vocabulary: 문장의 핵심 단어/숙어와 한국어 의미 목록 (예: ['included : 포함된', 'breakfast : 조식'])
+8. 언어별 코칭 지침: {lang_cfg['coaching_guide']}
+"""
+        contents = [
+            f"한국어 원문: \"{kr_text}\"",
+            f"사용자의 외국어 작문 시도: \"{user_attempt}\"" if has_attempt else "사용자의 작문 시도 없음 (모범 번역만 생성)"
+        ]
+
+        try:
+            res = generate_content_with_fallback(
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    response_mime_type="application/json",
+                    response_schema=StudioCoachingResponse,
+                    temperature=0.3
+                )
+            )
+            result = StudioCoachingResponse.model_validate_json(res.text)
+            self.after(0, self.render_studio_results, result, kr_text, user_attempt, lang_cfg)
+        except Exception as e:
+            print(f"⚠️ 스튜디오 분석 오류: {e}")
+            self.after(0, lambda: messagebox.showerror("오류", f"분석 중 오류가 발생했습니다: {e}"))
+        finally:
+            self.after(0, lambda: self.studio_btn_analyze.configure(text="✨ AI 번역 & 작문 정밀 분석", state="normal"))
+
+    def render_studio_results(self, result: StudioCoachingResponse, kr_text: str, user_attempt: str, lang_cfg: dict):
+        for widget in self.studio_result_scroll.winfo_children():
+            widget.destroy()
+
+        voice = lang_cfg["default_voice"]
+
+        # ================= Card 1: 🌟 원어민 추천 모범 번역 =================
+        card_main = ctk.CTkFrame(
+            self.studio_result_scroll,
+            fg_color=THEME["card_bg"],
+            border_width=1,
+            border_color="#C3E6CB",
+            corner_radius=14
+        )
+        card_main.pack(fill="x", padx=6, pady=(0, 10))
+
+        top_row = ctk.CTkFrame(card_main, fg_color="transparent")
+        top_row.pack(fill="x", padx=16, pady=(12, 4))
+
+        ctk.CTkLabel(
+            top_row,
+            text=f"🌟 원어민 추천 모범 번역  [{lang_cfg['key']}]",
+            font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
+            text_color=THEME["primary"]
+        ).pack(side="left")
+
+        ctk.CTkLabel(
+            card_main,
+            text=f"\"{result.recommended_translation}\"",
+            font=ctk.CTkFont(family="Pretendard", size=16, weight="bold"),
+            text_color=THEME["text_main"],
+            wraplength=620,
+            justify="left"
+        ).pack(anchor="w", padx=16, pady=(4, 4))
+
+        ctk.CTkLabel(
+            card_main,
+            text=f"📌 의미/뉘앙스: {result.recommended_translation_kr}",
+            font=ctk.CTkFont(family="Pretendard", size=11),
+            text_color=THEME["text_sub"],
+            wraplength=620,
+            justify="left"
+        ).pack(anchor="w", padx=16, pady=(0, 10))
+
+        # 액션 버튼 행 (발음 듣기, 복사, 오답노트 저장)
+        act_row = ctk.CTkFrame(card_main, fg_color="transparent")
+        act_row.pack(fill="x", padx=16, pady=(0, 12))
+
+        btn_tts = ctk.CTkButton(
+            act_row,
+            text="🔊 원어민 발음 듣기",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color=THEME["accent_blue"],
+            hover_color=THEME["accent_blue_hover"],
+            text_color="#FFFFFF",
+            height=32,
+            corner_radius=8,
+            command=lambda: threading.Thread(target=play_tts_sound, args=(result.recommended_translation, voice), daemon=True).start()
+        )
+        btn_tts.pack(side="left", padx=(0, 6))
+
+        def copy_to_clipboard():
+            self.clipboard_clear()
+            self.clipboard_append(result.recommended_translation)
+            messagebox.showinfo("복사 완료", "📋 클립보드에 모범 번역 문장이 복사되었습니다!")
+
+        btn_copy = ctk.CTkButton(
+            act_row,
+            text="📋 문장 복사",
+            font=ctk.CTkFont(size=11),
+            fg_color="#F1F5F9",
+            hover_color="#E2E8F0",
+            text_color=THEME["text_main"],
+            height=32,
+            corner_radius=8,
+            command=copy_to_clipboard
+        )
+        btn_copy.pack(side="left", padx=(0, 6))
+
+        # 오답노트 저장 버튼
+        def save_to_review():
+            item_dict = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "language": lang_cfg['key'],
+                "voice": voice,
+                "category": "AI 작문·번역 랩",
+                "scenario": f"원문: {kr_text}",
+                "original": user_attempt if user_attempt else "(자가 작문 미입력)",
+                "corrected": result.recommended_translation,
+                "explanation": result.user_feedback_detail if user_attempt else result.recommended_translation_kr
+            }
+            self.save_studio_to_review_note(item_dict)
+
+        btn_save_note = ctk.CTkButton(
+            act_row,
+            text="📚 스마트 오답노트 저장 (+15 EXP)",
+            font=ctk.CTkFont(size=11, weight="bold"),
+            fg_color=THEME["coach_accent"],
+            hover_color="#A0630D",
+            text_color="#FFFFFF",
+            height=32,
+            corner_radius=8,
+            command=save_to_review
+        )
+        btn_save_note.pack(side="right")
+
+        # ================= Card 2: 📝 1:1 내 작문 첨삭 코칭 (작문 입력 시) =================
+        if user_attempt and result.has_user_attempt:
+            card_coach = ctk.CTkFrame(
+                self.studio_result_scroll,
+                fg_color=THEME["coach_bg"],
+                border_width=1,
+                border_color=THEME["coach_border"],
+                corner_radius=14
+            )
+            card_coach.pack(fill="x", padx=6, pady=(0, 10))
+
+            coach_header = ctk.CTkFrame(card_coach, fg_color="transparent")
+            coach_header.pack(fill="x", padx=16, pady=(12, 4))
+
+            ctk.CTkLabel(
+                coach_header,
+                text="📝 1:1 내 작문 정밀 첨삭 코칭",
+                font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
+                text_color=THEME["coach_accent"]
+            ).pack(side="left")
+
+            ctk.CTkLabel(
+                coach_header,
+                text=result.user_attempt_grade,
+                font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"),
+                text_color=THEME["primary"] if "완벽" in result.user_attempt_grade or "좋은" in result.user_attempt_grade else "#DC2626"
+            ).pack(side="right")
+
+            ctk.CTkLabel(
+                card_coach,
+                text=f"✍️ 내가 쓴 문장: \"{user_attempt}\"",
+                font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"),
+                text_color=THEME["text_main"]
+            ).pack(anchor="w", padx=16, pady=(2, 4))
+
+            ctk.CTkLabel(
+                card_coach,
+                text=f"💡 총평: {result.user_attempt_evaluation}",
+                font=ctk.CTkFont(family="Pretendard", size=11, weight="bold"),
+                text_color=THEME["coach_accent"]
+            ).pack(anchor="w", padx=16, pady=(0, 4))
+
+            ctk.CTkLabel(
+                card_coach,
+                text=f"🔍 상세 해설:\n{result.user_feedback_detail}",
+                font=ctk.CTkFont(family="Pretendard", size=11),
+                text_color=THEME["text_main"],
+                wraplength=620,
+                justify="left",
+                line_spacing=4
+            ).pack(anchor="w", padx=16, pady=(0, 12))
+
+        # ================= Card 3: 🎭 상황 & 뉘앙스별 대안 표현 =================
+        card_nuance = ctk.CTkFrame(
+            self.studio_result_scroll,
+            fg_color=THEME["card_bg"],
+            border_width=1,
+            border_color=THEME["card_border"],
+            corner_radius=14
+        )
+        card_nuance.pack(fill="x", padx=6, pady=(0, 10))
+
+        ctk.CTkLabel(
+            card_nuance,
+            text="🎭 상황 & 뉘앙스별 대안 표현",
+            font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
+            text_color=THEME["text_main"]
+        ).pack(anchor="w", padx=16, pady=(12, 6))
+
+        # 격식 표현
+        formal_row = ctk.CTkFrame(card_nuance, fg_color="#F8FAFC", corner_radius=8)
+        formal_row.pack(fill="x", padx=16, pady=(0, 6))
+        
+        f_info = ctk.CTkFrame(formal_row, fg_color="transparent")
+        f_info.pack(side="left", fill="both", expand=True, padx=10, pady=8)
+
+        ctk.CTkLabel(f_info, text=f"💼 격식 (Formal): \"{result.formal_expression}\"", font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"), text_color=THEME["text_main"], wraplength=480, justify="left").pack(anchor="w")
+        ctk.CTkLabel(f_info, text=f"뜻: {result.formal_translation_kr}", font=ctk.CTkFont(family="Pretendard", size=10), text_color=THEME["text_sub"], wraplength=480, justify="left").pack(anchor="w")
+
+        ctk.CTkButton(
+            formal_row,
+            text="🔊 듣기",
+            width=65,
+            height=28,
+            font=ctk.CTkFont(size=10),
+            fg_color="#E2E8F0",
+            hover_color="#CBD5E1",
+            text_color=THEME["text_main"],
+            corner_radius=6,
+            command=lambda: threading.Thread(target=play_tts_sound, args=(result.formal_expression, voice), daemon=True).start()
+        ).pack(side="right", padx=10)
+
+        # 캐주얼 표현
+        casual_row = ctk.CTkFrame(card_nuance, fg_color="#F8FAFC", corner_radius=8)
+        casual_row.pack(fill="x", padx=16, pady=(0, 12))
+        
+        c_info = ctk.CTkFrame(casual_row, fg_color="transparent")
+        c_info.pack(side="left", fill="both", expand=True, padx=10, pady=8)
+
+        ctk.CTkLabel(c_info, text=f"💬 캐주얼 (Casual): \"{result.casual_expression}\"", font=ctk.CTkFont(family="Pretendard", size=12, weight="bold"), text_color=THEME["text_main"], wraplength=480, justify="left").pack(anchor="w")
+        ctk.CTkLabel(c_info, text=f"뜻: {result.casual_translation_kr}", font=ctk.CTkFont(family="Pretendard", size=10), text_color=THEME["text_sub"], wraplength=480, justify="left").pack(anchor="w")
+
+        ctk.CTkButton(
+            casual_row,
+            text="🔊 듣기",
+            width=65,
+            height=28,
+            font=ctk.CTkFont(size=10),
+            fg_color="#E2E8F0",
+            hover_color="#CBD5E1",
+            text_color=THEME["text_main"],
+            corner_radius=6,
+            command=lambda: threading.Thread(target=play_tts_sound, args=(result.casual_expression, voice), daemon=True).start()
+        ).pack(side="right", padx=10)
+
+        # ================= Card 4: 📖 핵심 어휘 & 표현 사전 =================
+        if result.key_vocabulary:
+            card_vocab = ctk.CTkFrame(
+                self.studio_result_scroll,
+                fg_color=THEME["card_bg"],
+                border_width=1,
+                border_color=THEME["card_border"],
+                corner_radius=14
+            )
+            card_vocab.pack(fill="x", padx=6, pady=(0, 10))
+
+            ctk.CTkLabel(
+                card_vocab,
+                text="📖 핵심 어휘 및 표현",
+                font=ctk.CTkFont(family="Pretendard", size=13, weight="bold"),
+                text_color=THEME["text_main"]
+            ).pack(anchor="w", padx=16, pady=(12, 4))
+
+            for v_item in result.key_vocabulary:
+                ctk.CTkLabel(
+                    card_vocab,
+                    text=f"• {v_item}",
+                    font=ctk.CTkFont(family="Pretendard", size=11),
+                    text_color=THEME["text_main"],
+                    wraplength=620,
+                    justify="left"
+                ).pack(anchor="w", padx=16, pady=1)
+
+            ctk.CTkFrame(card_vocab, height=8, fg_color="transparent").pack()
+
+    def save_studio_to_review_note(self, item_dict: dict):
+        reviews = self.load_reviews()
+        reviews.append(item_dict)
+        self.save_reviews(reviews)
+
+        prof = self.get_current_profile()
+        prof["exp"] += 15
+        self.save_profile()
+
+        messagebox.showinfo("저장 완료", f"📚 스마트 오답노트에 성공적으로 보관되었습니다!\n✨ +15 EXP를 획득하셨습니다. (현재: {prof['exp']:,} EXP)")
+
+    # =========================================================================
+    # 세션 시작 & 다이내믹 AI 엔진
+    # =========================================================================
     def start_random_rpg_quest(self):
         all_cats = list(MASTER_CATEGORIES.keys())
         r_cat = random.choice(all_cats)
@@ -1087,9 +1632,6 @@ class MultilingualMasteryApp(ctk.CTk):
     def _render_rpg_start(self, sc):
         self._render_fluent_start(sc)
 
-    # =========================================================================
-    # 세션 시작 & 다이내믹 AI 엔진
-    # =========================================================================
     def start_fluent_session(self):
         self.fl_btn_start.configure(state="disabled", text="⏳ 시나리오 준비 중...")
         threading.Thread(target=self._init_fluent_session_async, daemon=True).start()
@@ -1139,54 +1681,54 @@ class MultilingualMasteryApp(ctk.CTk):
         is_beginner = "Lv 1" in diff_name or "Lv 2" in diff_name
 
         lang_key = lang_cfg.get("key", "영어")
-        
+
         if is_chaos:
-            title = f"{cat} 긴급 돌발 위기 상황"
+            title = "🚨 [돌발 상황] 오버부킹 및 긴급 컴플레인"
             role = "Crisis Manager (David)" if lang_key != "일본어" else "緊急対応マネージャー (佐藤)"
-            context = "전산 시스템 심각한 오류 및 오버부킹으로 예약이 누락되어 즉각적인 분쟁 해결 및 보상이 필요한 긴급 상황"
+            context = "시스템 오류로 오늘 밤 예약이 만실(Overbooked)되어 다른 호텔로 이동하라는 통보를 받았습니다. 예약 내역을 제시하고 즉각적인 대책과 업그레이드를 요구하세요."
             openings = {
-                "영어": "I am deeply sorry, but our central system suffered a critical crash and all suites are completely overbooked tonight. We must discuss relocating you immediately.",
-                "일본어": "大変申し訳ございません。システム障害により本日の予約が二重登録となっており、現在ご案内できる部屋がございません。",
-                "중국어": "非常抱歉，系统出现严重故障导致房间超额预订，今晚已无空房，我们需要立即协商处理。",
-                "스페인어": "Lo siento muchísimo, pero debido a un fallo crítico del sistema, todas las habitaciones están sobrevendidas esta noche."
+                "영어": "I am terribly sorry, but our hotel is completely overbooked tonight due to a system glitch. We will have to arrange a room for you at a partner hotel.",
+                "일본어": "大変申し訳ございません。本日システム障害により満室となっており、近隣の提携ホテルへのご案内となってしまいます。",
+                "중국어": "非常抱歉，由于系统故障，今晚酒店已经满房。我们不得不为您安排附近的合作酒店。",
+                "스페인어": "Lo siento muchísimo, pero esta noche el hotel está completamente lleno debido a un error del sistema. Tendremos que trasladarlo a otro hotel asociado."
             }
             translations = {
-                "영어": "정말 죄송합니다만, 중앙 시스템 치명적 오류로 오늘 밤 모든 객실이 오버부킹되었습니다. 즉시 다른 숙소로의 재배치 및 보상을 협의해야 합니다.",
-                "일본어": "대단히 죄송합니다. 시스템 장애로 오늘 예약이 이중 등록되어 현재 안내해 드릴 수 있는 방이 없습니다.",
-                "중국어": "대단히 죄송합니다. 시스템의 심각한 오류로 오버부킹이 발생하여 오늘 밤 빈 방이 없으므로 즉시 협의해야 합니다.",
-                "스페인어": "정말 죄송합니다만, 시스템의 치명적인 오류로 인해 오늘 밤 모든 방이 오버부킹되었습니다."
+                "영어": "정말 죄송하지만, 시스템 오류로 인해 오늘 밤 호텔이 만실입니다. 부득이하게 인근 협력 호텔로 안내해 드려야 할 것 같습니다.",
+                "일본어": "대단히 죄송합니다. 오늘 시스템 장애로 인해 만실이어서, 인근 제휴 호텔로 안내해 드려야 합니다.",
+                "중국어": "정말 죄송합니다. 시스템 오류로 오늘 밤 만실이어서 제휴 호텔로 안내해 드려야 합니다.",
+                "스페인어": "정말 죄송합니다만, 시스템 오류로 호텔이 만실이라 협력 호텔로 이동하셔야 합니다."
             }
         elif is_beginner:
-            title = f"{cat} 기초 일상 안내"
+            title = "🌱 [기초 회화] 친절한 체크인 안내"
             role = "Guide (Alex)" if lang_key != "일본어" else "案内スタッフ (田中)"
-            context = "기초적이고 친절한 기본 안내 및 필수 확인 절차"
+            context = "프론트 데스크에 도착했습니다. 예약자 이름을 말하고 체크인을 진행하세요."
             openings = {
-                "영어": "Hello! Welcome. How can I help you?",
-                "일본어": "こんにちは！いらっしゃいませ。ご用件をどうぞ。",
-                "중국어": "您好！欢迎光临。请问有什么可以帮您？",
-                "스페인어": "¡Hola! Bienvenido. ¿En qué puedo ayudarle?"
+                "영어": "Hello! Welcome to our hotel. May I have your name and passport, please?",
+                "일본어": "いらっしゃいませ。ようこそ。お名前とパスポートをお願いします。",
+                "중국어": "您好！欢迎光临。请问您的姓名和护照可以出示一下吗？",
+                "스페인어": "¡Hola! Bienvenido a nuestro hotel. ¿Me permite su nombre y pasaporte, por favor?"
             }
             translations = {
-                "영어": "안녕하세요! 환영합니다. 무엇을 도와드릴까요?",
-                "일본어": "안녕하세요! 어서 오세요. 무엇을 도와드릴까요?",
-                "중국어": "안녕하세요! 환영합니다. 어떤 도움이 필요하신가요?",
-                "스페인어": "안녕하세요! 환영합니다. 무엇을 도와드릴까요?"
+                "영어": "안녕하세요! 호텔에 오신 것을 환영합니다. 성함과 여권을 보여주시겠어요?",
+                "일본어": "어서 오세요. 환영합니다. 성함과 여권을 부탁드립니다.",
+                "중국어": "안녕하세요! 환영합니다. 성함과 여권을 보여주시겠습니까?",
+                "스페인어": "안녕하세요! 호텔에 오신 것을 환영합니다. 성함과 여권을 보여주시겠습니까?"
             }
         else:
-            title = f"{cat} 실용 회화"
+            title = f"🎬 [{cat}] 자연스러운 롤플레잉"
             role = "Staff (Alex)" if lang_key != "일본어" else "担当スタッフ (高橋)"
-            context = "일상적인 상세 요구사항 문의 및 추천 안내"
+            context = f"당신은 '{cat}' 상황에 있습니다. 상대방의 안내를 듣고 원하는 바를 자연스럽게 표현하세요."
             openings = {
-                "영어": "Good day! How may I assist you with your request today?",
-                "일본어": "こんにちは！本日はどのようなご要望でしょうか？",
-                "중국어": "您好！今天有什么需要我协助您的吗？",
-                "스페인어": "¡Buen día! ¿En qué puedo colaborarle hoy con su solicitud?"
+                "영어": "Hello there! How can I assist you with your request today?",
+                "일본어": "こんにちは！本日はどのようなご用件でしょうか？",
+                "중국어": "您好！请问今天有什么我可以帮您的吗？",
+                "스페인어": "¡Hola! ¿En qué puedo ayudarle hoy?"
             }
             translations = {
-                "영어": "좋은 날입니다! 오늘 어떤 문의사항을 도와드릴까요?",
-                "일본어": "안녕하세요! 오늘은 어떤 요청사항이 있으신가요?",
-                "중국어": "안녕하세요! 오늘 어떤 도움이 필요하신가요?",
-                "스페인어": "좋은 하루입니다! 오늘 어떤 요청사항을 도와드릴까요?"
+                "영어": "안녕하세요! 오늘 어떤 도움이 필요하신가요?",
+                "일본어": "안녕하세요! 오늘 어떤 일로 도와드릴까요?",
+                "중국어": "안녕하세요! 오늘 무엇을 도와드릴까요?",
+                "스페인어": "안녕하세요! 오늘 무엇을 도와드릴까요?"
             }
 
         return {
@@ -1206,22 +1748,25 @@ class MultilingualMasteryApp(ctk.CTk):
         diff_info = DIFFICULTY_OPTIONS[diff_name]
 
         sys_inst = f"""
-당신은 세계 최고의 외국어 교육용 롤플레잉 시나리오 설계 전문가입니다.
+당신은 최고 수준의 다국어 롤플레잉 시나리오 디렉터입니다.
 [학습 대상 언어]: {lang_cfg['name_en']} ({lang_cfg['key']})
-[학습자 회화 레벨]: {diff_name}
-[레벨별 상세 지침]: {diff_info['desc']}
-[상황 복잡도 가이드]: {diff_info['complexity_guide']}
+[학습자 회화 레벨]: '{diff_name}'
+- 레벨 설명: {diff_info['desc']}
+- 난이도/복잡도 가이드: {diff_info['complexity_guide']}
 
-[★ 레벨별 100% 맞춤형 상황 복잡도, 상대방 태도, 미션 및 첫 대사(opening) 생성 규칙]:
+[절대 원칙]:
+상대방 캐릭터의 첫 대사(opening)와 한국어 번역(opening_translation)을 생성할 때, 반드시 아래 [레벨별 예시]의 어휘/문장 복잡도/길이 기준을 100% 엄격하게 준수하세요!
+
+[레벨별 opening 난이도 기준]:
 - 'Lv 1. 생존 입문 (A1 Starter)':
-  * 상황 및 미션: 극도로 단순/직관적인 기초 상황 (단순 명사/인사, 방 키 받기, 단답형 주문, 기본 확인).
-  * 상대방 태도 및 첫 대사: 극도로 친절하고 느리며, 3~5단어의 기초 단문으로 말함. (예: "Hello! Welcome. Room reservation?")
+  * 상황 및 미션: 3~5단어로 해결 가능한 단순 문답 (이름 말하기, 방 열쇠 받기, 물 주문하기).
+  * 상대방 태도 및 첫 대사: 아주 쉽고 친절한 1~2개 기초 단문. (예: "Hello! Welcome. What is your name, please?")
 - 'Lv 2. 기초 일상 (A2 Elementary)':
-  * 상황 및 미션: 일상 필수 기초 문장 (조식 시간, 와이파이 비번, 기본 길찾기, 메뉴 수량 선택).
+  * 상황 및 미션: 일상적인 선택과 기본 문의 (조식 포함 여부 확인, 룸 넘버 확인, 와이파이 비번 묻기).
   * 상대방 태도 및 첫 대사: 표준적이고 또박또박한 기본 문장. (예: "Welcome! Here is your room key. Would you like breakfast included?")
 - 'Lv 3. 실용 중급 (B1 Intermediate)':
-  * 상황 및 미션: 세부 요청 및 취향/의견 설명 (조용한 고층 방 변경, 짐 보관, 얼음 적게, 드립커피 추천).
-  * 상대방 태도 및 첫 대사: 자연스러운 원어민 구어체와 친근하고 매끄러운 응대. (예: "Good afternoon! We have standard rooms available on floors 3 and 7. Which do you prefer?")
+  * 상황 및 미션: 세부 요청 및 취향 설명 (고층 방 배정 요청, 늦은 체크아웃 가능 여부 문의, 짐 보관 요청).
+  * 상대방 태도 및 첫 대사: 자연스러운 원어민 구어체 연결 문장. (예: "Good afternoon! Your standard room is ready, but we have a quiet room on the top floor available if you prefer.")
 - 'Lv 4. 유창 심화 (B2 Upper-Intermediate)':
   * 상황 및 미션: 디테일한 조건 비교 및 질문 (전망 업그레이드 요청, 주변 로컬 맛집 추천받기, 스펙 비교).
   * 상대방 태도 및 첫 대사: 풍부한 어휘와 복합 문장, 디테일한 질문 던지기. (예: "Hello! I see you requested a city view. Would you be interested in an ocean view suite today?")
@@ -1375,7 +1920,6 @@ class MultilingualMasteryApp(ctk.CTk):
     # 말풍선 렌더링 헬퍼 함수들 (글자 짤림 방지 완벽 대응)
     # =========================================================================
     def _add_system_banner(self, parent, title_text, context_text=""):
-        # 2단 구조 프레임으로 절대 글자가 짤리지 않도록 구성
         banner_frame = ctk.CTkFrame(
             parent,
             corner_radius=12,
@@ -1402,196 +1946,131 @@ class MultilingualMasteryApp(ctk.CTk):
                 font=ctk.CTkFont(family="Pretendard", size=11),
                 text_color=THEME["text_main"],
                 wraplength=650,
-                justify="center"
+                justify="left"
             )
             lbl_context.pack(fill="x", padx=14, pady=(0, 8))
 
-    def _add_user_bubble(self, parent, user_text, time_str, is_rpg=False):
+    def _add_ai_bubble(self, parent, role, text, time_str, is_rpg=False, translation_text=""):
         row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", padx=6, pady=4)
+        row.pack(fill="x", pady=4, padx=6)
 
-        tag_text = "👤 Karis (Hero)" if is_rpg else "👤 Karis (나)"
+        tag_text = f"🤖 {role}" if not is_rpg else f"👾 BOSS: {role}"
         header = ctk.CTkLabel(row, text=f"{tag_text}  {time_str}", font=ctk.CTkFont(size=10, weight="bold"), text_color=THEME["primary"])
-        header.pack(anchor="e", padx=(0, 4), pady=(0, 2))
+        header.pack(anchor="w", padx=6, pady=(0, 2))
 
-        bubble = ctk.CTkFrame(
+        bubble_container = ctk.CTkFrame(
             row,
-            corner_radius=14,
-            fg_color=THEME["user_bubble"],
-            border_width=1,
-            border_color=THEME["user_border"]
-        )
-        bubble.pack(anchor="e", padx=(60, 0))
-
-        lbl = ctk.CTkLabel(
-            bubble,
-            text=user_text,
-            font=ctk.CTkFont(family="Pretendard", size=12),
-            text_color=THEME["text_main"],
-            wraplength=620,
-            justify="left"
-        )
-        lbl.pack(padx=14, pady=8)
-
-    def _add_coaching_card(self, parent, coaching: TurnCoaching, is_rpg=False):
-        card = ctk.CTkFrame(
-            parent,
             corner_radius=12,
-            fg_color=THEME["coach_bg"],
-            border_width=1,
-            border_color=THEME["coach_border"]
-        )
-        card.pack(fill="x", padx=10, pady=(6, 8))
-
-        lang_cfg = self.get_cur_lang_cfg()
-
-        if not coaching.is_flawless:
-            title_txt = f"💡 [1:1 {lang_cfg['key']} 정밀 코칭 카드]" if not is_rpg else "🛡️ [COACHING SHIELD HIT! +15 EXP]"
-            c_title = ctk.CTkLabel(card, text=title_txt, font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["coach_accent"])
-            c_title.pack(anchor="w", padx=14, pady=(8, 3))
-
-            c_rec = ctk.CTkLabel(
-                card,
-                text=f"✨ 모범 교정: \"{coaching.corrected_sentence}\"",
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#2F855A",
-                wraplength=650,
-                justify="left"
-            )
-            c_rec.pack(anchor="w", padx=14, pady=2)
-
-            c_exp = ctk.CTkLabel(
-                card,
-                text=f"📝 뉘앙스 해설: {coaching.korean_feedback}",
-                font=ctk.CTkFont(size=10),
-                text_color=THEME["text_main"],
-                wraplength=650,
-                justify="left"
-            )
-            c_exp.pack(anchor="w", padx=14, pady=(3, 10))
-        else:
-            p_text = "🟢 완벽하고 자연스러운 원어민 표현입니다! (+30 EXP)" if not is_rpg else "⚡ ✨ CRITICAL PERFECT HIT! (+30 EXP 획득)"
-            lbl_perf = ctk.CTkLabel(
-                card,
-                text=p_text,
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color="#2F855A",
-                justify="center"
-            )
-            lbl_perf.pack(fill="x", padx=14, pady=10)
-
-    def _add_ai_bubble(self, parent, role, reply_text, time_str, is_rpg=False, translation_text=""):
-        row = ctk.CTkFrame(parent, fg_color="transparent")
-        row.pack(fill="x", padx=6, pady=4)
-
-        # 1. 상단 헤더 줄 (태그 + 시간 + [🌐 번역] 버튼)
-        header_row = ctk.CTkFrame(row, fg_color="transparent")
-        header_row.pack(fill="x", padx=(4, 0), pady=(0, 2))
-
-        tag_text = f"👾 [BOSS] {role}" if is_rpg else f"🤖 {role}"
-        header = ctk.CTkLabel(header_row, text=f"{tag_text}  {time_str}", font=ctk.CTkFont(size=10, weight="bold"), text_color=THEME["accent_blue"])
-        header.pack(side="left")
-
-        # 2. 말풍선 컨테이너
-        bubble = ctk.CTkFrame(
-            row,
-            corner_radius=14,
             fg_color=THEME["ai_bubble"],
             border_width=1,
             border_color=THEME["ai_border"]
         )
-        bubble.pack(anchor="w", padx=(0, 60))
+        bubble_container.pack(anchor="w", padx=4)
 
-        # 3. 외국어 원문 메시지
-        lbl_msg = ctk.CTkLabel(
-            bubble,
-            text=reply_text,
+        lbl = ctk.CTkLabel(
+            bubble_container,
+            text=text,
             font=ctk.CTkFont(family="Pretendard", size=12),
             text_color=THEME["text_main"],
             wraplength=620,
             justify="left"
         )
-        lbl_msg.pack(anchor="w", padx=14, pady=(8, 6))
+        lbl.pack(anchor="w", padx=14, pady=(8, 4))
 
-        # 4. 한국어 번역 카드 프레임 (기본은 숨김)
-        trans_box = ctk.CTkFrame(
-            bubble,
-            fg_color="#E2E8F0",
-            corner_radius=10,
+        if translation_text:
+            trans_lbl = ctk.CTkLabel(
+                bubble_container,
+                text=f"📌 [해석]: {translation_text}",
+                font=ctk.CTkFont(family="Pretendard", size=11),
+                text_color=THEME["text_sub"],
+                wraplength=620,
+                justify="left"
+            )
+            trans_lbl.pack(anchor="w", padx=14, pady=(0, 8))
+        else:
+            lbl.pack_configure(pady=(8, 8))
+
+    def _add_coaching_card(self, parent, coaching: TurnCoaching, is_rpg=False):
+        lang_cfg = self.get_cur_lang_cfg()
+        if not coaching.is_flawless:
+            card = ctk.CTkFrame(
+                parent,
+                corner_radius=12,
+                fg_color=THEME["coach_bg"],
+                border_width=1,
+                border_color=THEME["coach_border"]
+            )
+            card.pack(fill="x", pady=4, padx=6)
+
+            title_txt = f"💡 [1:1 {lang_cfg['key']} 정밀 코칭 카드]" if not is_rpg else "🛡️ [COACHING SHIELD HIT! +15 EXP]"
+            c_title = ctk.CTkLabel(card, text=title_txt, font=ctk.CTkFont(size=11, weight="bold"), text_color=THEME["coach_accent"])
+            c_title.pack(anchor="w", padx=14, pady=(8, 2))
+
+            c_orig = ctk.CTkLabel(
+                card,
+                text=f"❌ 내가 쓴 표현: \"{coaching.recognized_user_text}\"",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#DC2626",
+                wraplength=620,
+                justify="left"
+            )
+            c_orig.pack(anchor="w", padx=14, pady=1)
+
+            c_corr = ctk.CTkLabel(
+                card,
+                text=f"✨ 모범 교정문: \"{coaching.corrected_sentence}\"",
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color="#2F855A",
+                wraplength=620,
+                justify="left"
+            )
+            c_corr.pack(anchor="w", padx=14, pady=1)
+
+            c_exp = ctk.CTkLabel(
+                card,
+                text=f"📝 해설: {coaching.korean_feedback}",
+                font=ctk.CTkFont(size=11),
+                text_color=THEME["text_main"],
+                wraplength=620,
+                justify="left"
+            )
+            c_exp.pack(anchor="w", padx=14, pady=(1, 8))
+
+    def _add_user_bubble(self, parent, text, time_str, is_rpg=False):
+        row = ctk.CTkFrame(parent, fg_color="transparent")
+        row.pack(fill="x", pady=4, padx=6)
+
+        header_row = ctk.CTkFrame(row, fg_color="transparent")
+        header_row.pack(anchor="e", padx=6, pady=(0, 2))
+
+        tag_text = "👤 나 (학습자)" if not is_rpg else "⚔️ HERO (Player)"
+        header = ctk.CTkLabel(header_row, text=f"{tag_text}  {time_str}", font=ctk.CTkFont(size=10, weight="bold"), text_color=THEME["accent_blue"])
+        header.pack(side="left")
+
+        bubble_container = ctk.CTkFrame(
+            row,
+            corner_radius=12,
+            fg_color=THEME["user_bubble"],
             border_width=1,
-            border_color="#CBD5E1"
+            border_color=THEME["user_border"]
         )
-        
-        lbl_trans = ctk.CTkLabel(
-            trans_box,
-            text=f"🇰🇷 [한국어 해석]\n{translation_text}" if translation_text else "🇰🇷 [한국어 해석]\n번역을 불러오는 중...",
-            font=ctk.CTkFont(family="Pretendard", size=11),
-            text_color="#1E293B",
-            wraplength=580,
+        bubble_container.pack(anchor="e", padx=4)
+
+        lbl = ctk.CTkLabel(
+            bubble_container,
+            text=text,
+            font=ctk.CTkFont(family="Pretendard", size=12),
+            text_color=THEME["text_main"],
+            wraplength=620,
             justify="left"
         )
-        lbl_trans.pack(anchor="w", padx=12, pady=6)
-
-        # 토글 상태 클로저
-        state = {
-            "is_open": False,
-            "trans_text": translation_text
-        }
-
-        def toggle_trans():
-            if not state["is_open"]:
-                state["is_open"] = True
-                btn_trans.configure(
-                    text="🌐 번역 닫기",
-                    fg_color=THEME["primary"],
-                    hover_color=THEME["primary_hover"],
-                    text_color="#FFFFFF"
-                )
-                trans_box.pack(fill="x", padx=10, pady=(0, 8))
-
-                # 번역 데이터가 비어있으면 백그라운드 API 번역 실행
-                if not state["trans_text"]:
-                    def _fetch_trans():
-                        try:
-                            lang_cfg = self.get_cur_lang_cfg()
-                            prompt = f"다음 {lang_cfg['name_en']} 문장을 한국어로 자연스럽고 정확하게 번역해줘. 설명 없이 오직 한국어 번역 문장만 응답해줘:\n\"{reply_text}\""
-                            t_res = generate_content_with_fallback(prompt)
-                            t_text = t_res.text.strip()
-                            state["trans_text"] = t_text
-                            self.after(0, lambda: lbl_trans.configure(text=f"🇰🇷 [한국어 해석]\n{t_text}"))
-                        except Exception as ex:
-                            self.after(0, lambda: lbl_trans.configure(text=f"⚠️ 번역 로드 실패: {ex}"))
-                    threading.Thread(target=_fetch_trans, daemon=True).start()
-            else:
-                state["is_open"] = False
-                btn_trans.configure(
-                    text="🌐 번역",
-                    fg_color="#E2E8F0",
-                    hover_color="#CBD5E1",
-                    text_color="#475569"
-                )
-                trans_box.pack_forget()
-
-        # [🌐 번역] 버튼 배치
-        btn_trans = ctk.CTkButton(
-            header_row,
-            text="🌐 번역",
-            font=ctk.CTkFont(family="Pretendard", size=10, weight="bold"),
-            fg_color="#E2E8F0",
-            hover_color="#CBD5E1",
-            text_color="#475569",
-            width=58,
-            height=20,
-            corner_radius=6,
-            command=toggle_trans
-        )
-        btn_trans.pack(side="left", padx=(10, 0))
+        lbl.pack(anchor="e", padx=14, pady=8)
 
     # =========================================================================
     # 음성 입출력 및 다시 듣기 & 입력 모드 제어
     # =========================================================================
     def is_text_input_focused(self) -> bool:
-        """현재 포커스가 텍스트 입력창(Entry/Text) 안에 있는지 정확하게 감지"""
+        """현재 포커스가 텍스트 입력창(Entry/Text/Textbox) 안에 있는지 정확하게 감지"""
         try:
             focused = self.focus_get()
             if focused is None:
@@ -1600,10 +2079,14 @@ class MultilingualMasteryApp(ctk.CTk):
                 getattr(self, "fl_txt_input", None),
                 getattr(self, "rpg_txt_input", None),
                 getattr(self, "fl_entry_custom_ai", None),
-                getattr(self, "fl_entry_condition", None)
+                getattr(self, "fl_entry_condition", None),
+                getattr(self, "studio_txt_kr", None),
+                getattr(self, "studio_txt_foreign", None)
             ]:
                 if entry_widget is not None:
-                    if focused == entry_widget or focused == getattr(entry_widget, "_entry", None):
+                    if (focused == entry_widget or 
+                        focused == getattr(entry_widget, "_entry", None) or 
+                        focused == getattr(entry_widget, "_textbox", None)):
                         return True
             if isinstance(focused, (tk.Entry, tk.Text)):
                 return True
@@ -1632,7 +2115,6 @@ class MultilingualMasteryApp(ctk.CTk):
             self.focus_set()
 
     def on_r_pressed(self, event):
-        # 텍스트 입력 모드이거나 텍스트 입력창에 포커스가 있을 때는 R 키 인터셉트 방지
         if self.input_mode_var.get() == "text" or self.is_text_input_focused():
             return
         cur_tab = self.tabview.get()
@@ -1646,7 +2128,6 @@ class MultilingualMasteryApp(ctk.CTk):
             messagebox.showinfo("안내", "먼저 롤플레잉 세션을 시작해 주세요!")
 
     def on_space_pressed(self, event):
-        # 텍스트 입력 모드이거나 텍스트 입력창에 포커스가 있을 때는 Space 키 녹음 트리거 방지
         if self.input_mode_var.get() == "text" or self.is_text_input_focused():
             return
         cur_tab = self.tabview.get()
@@ -1837,7 +2318,7 @@ class MultilingualMasteryApp(ctk.CTk):
         self.save_profile()
 
     # =========================================================================
-    # [TAB 3] 스마트 오답노트 & 퀴즈
+    # [TAB 4] 스마트 오답노트 & 퀴즈
     # =========================================================================
     def build_review_tab(self):
         top_bar = ctk.CTkFrame(self.tab_review, fg_color="transparent")
@@ -2029,7 +2510,7 @@ class MultilingualMasteryApp(ctk.CTk):
         load_question()
 
     # =========================================================================
-    # [TAB 4] 실력 대시보드
+    # [TAB 5] 실력 대시보드
     # =========================================================================
     def build_dashboard_tab(self):
         dash_frame = ctk.CTkFrame(self.tab_dashboard, fg_color="transparent")

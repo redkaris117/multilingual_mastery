@@ -1,0 +1,26 @@
+{
+  "영어": {
+    "exp": 120,
+    "tier": "Bronze (Tourist)",
+    "total_turns": 6,
+    "flawless_turns": 2
+  },
+  "일본어": {
+    "exp": 0,
+    "tier": "Bronze (Tourist)",
+    "total_turns": 0,
+    "flawless_turns": 0
+  },
+  "중국어": {
+    "exp": 0,
+    "tier": "Bronze (Tourist)",
+    "total_turns": 0,
+    "flawless_turns": 0
+  },
+  "스페인어": {
+    "exp": 0,
+    "tier": "Bronze (Tourist)",
+    "total_turns": 0,
+    "flawless_turns": 0
+  }
+}
